@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brebaje Virtual con Massiel</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>☕</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--noche:#0b1d3a;--navy:#12294f;--navy2:#1b3a6b;--celeste:#8fd3ff;--cielo:#e3f3ff;--lampara:#ffcf7a;--r:14px}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:radial-gradient(1200px 600px at 50% -10%,#1d3f78,var(--noche));color:var(--cielo);font:16px/1.5 Nunito,system-ui,sans-serif}
+h1,h2,h3{font-family:Fraunces,Georgia,serif;margin:0}
+button{font:inherit;cursor:pointer;border:0;border-radius:999px;padding:.55em 1.1em;background:var(--navy2);color:var(--cielo)}
+button:hover{background:#2a52920}
+button.main{background:var(--lampara);color:#3b2a05;font-weight:700}
+button.off{background:#7a2e3b}
+button:focus-visible,input:focus-visible{outline:3px solid var(--celeste);outline-offset:2px}
+input{font:inherit;padding:.6em .9em;border-radius:10px;border:1px solid var(--navy2);background:var(--navy);color:var(--cielo);width:100%}
+.hide{display:none!important}
+/* lobby */
+#lobby{max-width:760px;margin:0 auto;padding:32px 20px}
+#lobby h1{font-size:clamp(2rem,6vw,3.4rem);font-weight:800;line-height:1.05}
+#lobby p.sub{color:var(--celeste);margin:.4em 0 1.4em}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:8px;margin:12px 0 20px}
+.opt{background:var(--navy);border:2px solid transparent;border-radius:var(--r);padding:8px 4px;text-align:center;font-size:.85rem;color:var(--cielo)}
+.opt .e{display:block;font-size:2rem}
+.opt.sel{border-color:var(--lampara);background:var(--navy2)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.warn{font-size:.8rem;color:#9fb8d8;margin-top:22px}
+/* sala */
+#room{height:100%;display:grid;grid-template-columns:1fr 400px;grid-template-rows:auto 1fr auto}
+header{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:10px 16px;gap:10px;flex-wrap:wrap}
+header h2{font-size:1.15rem}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.modes button.act{background:var(--celeste);color:var(--noche);font-weight:700}
+#grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));grid-auto-rows:minmax(280px,1fr);gap:10px;padding:0 10px;min-height:0}
+.tile{position:relative;background:#06122a;border-radius:var(--r);overflow:hidden;border:1px solid var(--navy2)}
+.tile video{width:100%;height:100%;object-fit:cover;display:block}
+.tile.me video{transform:scaleX(-1)}
+.tile.sc video{transform:none}
+.nm{position:absolute;left:10px;bottom:10px;background:rgba(6,18,42,.75);padding:.2em .8em;border-radius:999px;font-weight:700}
+.drink{position:absolute;right:8px;bottom:6px;width:250px;text-align:center;filter:drop-shadow(0 4px 6px rgba(0,0,0,.5))}
+.drink .e{display:block;font-size:10rem;line-height:1;animation:bob 3.2s ease-in-out infinite;transform-origin:50% 90%}
+.drink small{display:block;background:rgba(6,18,42,.75);border-radius:99px;font-size:.95rem;margin-top:4px;border:2px solid var(--c,transparent)}.drink::before{content:"";position:absolute;left:50%;bottom:24px;width:220px;height:220px;transform:translateX(-50%);background:radial-gradient(circle,var(--c,transparent) 0,transparent 66%);opacity:.5;z-index:-1}
+.drink i{position:absolute;bottom:60%;left:50%;width:26px;height:26px;border-radius:50%;opacity:0}
+.hot i{background:rgba(255,255,255,.55);filter:blur(8px);animation:steam 2.6s infinite}
+.fizz i{background:rgba(227,243,255,.8);width:15px;height:15px;animation:bubble 2s infinite}
+.drink i:nth-of-type(2){margin-left:-40px;animation-delay:.7s}.drink i:nth-of-type(3){margin-left:34px;animation-delay:1.3s}
+.drink.cheers .e{animation:cheers 1.2s ease-in-out}
+.wait{display:grid;place-items:center;color:var(--celeste);text-align:center;padding:20px}
+@keyframes bob{50%{transform:translateY(-10px) rotate(-3deg)}}
+@keyframes steam{0%{opacity:0;transform:translateY(0) scale(.6)}30%{opacity:.8}100%{opacity:0;transform:translateY(-110px) scale(1.8)}}
+@keyframes bubble{0%{opacity:0;transform:translateY(20px)}30%{opacity:1}100%{opacity:0;transform:translateY(-100px)}}
+@keyframes cheers{0%,100%{transform:rotate(0)}30%{transform:translateY(-40px) rotate(-28deg) scale(1.2)}60%{transform:translateY(-28px) rotate(-18deg) scale(1.1)}}
+aside{display:flex;flex-direction:column;min-height:0;background:var(--navy);border-left:1px solid var(--navy2)}
+#panel{padding:14px;overflow:auto;flex:0 1 55%;border-bottom:1px solid var(--navy2)}
+#panel h3{font-size:1.2rem;margin-bottom:8px}
+#chat{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px}
+#msgs{flex:1;overflow:auto;font-size:.9rem}
+#msgs b{color:var(--lampara)}
+footer{grid-column:1/-1;display:flex;justify-content:center;gap:8px;padding:10px;flex-wrap:wrap}
+.big{font-size:1.25rem;font-family:Fraunces,serif;margin:10px 0}
+.sg{display:grid;grid-template-columns:repeat(15,1fr);gap:1px;margin:8px 0}.sg button{padding:0;aspect-ratio:1;border-radius:4px;font-size:.78rem;font-weight:700;background:var(--navy2);color:var(--cielo)}.sg button.f{background:var(--lampara);color:#3b2a05}.sg button.s{background:var(--celeste);color:var(--noche)}.wl span{display:inline-block;margin:2px 8px 2px 0;font-size:.8rem}.wl .d{text-decoration:line-through;color:#7fa0c8}.kb button{width:30px;height:30px;padding:0;border-radius:8px;margin:2px}.kb button:disabled{opacity:.3}.ttt{display:grid;grid-template-columns:repeat(3,70px);gap:6px;margin:10px 0}
+.ttt button{height:70px;border-radius:12px;font-size:2rem;background:var(--navy2)}
+.who label{display:block}
+#toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:var(--lampara);color:#3b2a05;padding:.5em 1.2em;border-radius:99px;font-weight:700;z-index:9}
+dialog{background:var(--noche);color:var(--cielo);border:1px solid var(--navy2);border-radius:var(--r);max-width:720px;width:92vw}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+@media(max-width:860px){#room{grid-template-columns:1fr;grid-template-rows:auto auto auto auto auto;overflow:auto;height:auto}#grid{grid-template-columns:1fr}aside{border-left:0}.drink{width:150px}.drink .e{font-size:6rem}#chat{height:220px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+
+<section id="lobby">
+  <h1>Brebaje Virtual<br>con Massiel ☕</h1>
+  <p class="sub" id="lsub">Una cita de hasta 4 personas, cada quien con su vaso en la esquina.</p>
+  <label for="nick">Tu nombre o nickname</label>
+  <input id="nick" maxlength="16" placeholder="Ej: Massiel" autocomplete="off">
+  <div id="rbox" style="margin-top:14px"><label for="rname">Nombre de tu cita (opcional)</label><input id="rname" maxlength="24" placeholder="Ej: viernes-con-massiel"><small style="color:#9fb8d8">Si lo pones, el enlace siempre será el mismo y puedes enviarlo con anticipación.</small></div><h3 style="margin-top:18px">Elige tu brebaje</h3>
+  <div class="picker" id="lpick"></div>
+  <div class="row">
+    <button class="main" id="bCreate">Crear cita</button>
+    <button class="main hide" id="bJoin">Unirme a la cita</button>
+  </div>
+  <p class="warn">🍷 Bebe con responsabilidad. Si eres menor de edad, elige café, té, licuado, jugo o agua. Tu cámara y micrófono se piden al entrar y el video va directo entre los participantes.</p>
+</section>
+
+<section id="room" class="hide">
+  <header>
+    <h2>☕ Brebaje Virtual con Massiel</h2>
+    <div class="modes" id="modes"></div>
+    <button id="bLang">EN</button>
+  </header>
+  <div id="grid"></div>
+  <aside>
+    <div id="panel"></div>
+    <div id="chat">
+      <div id="msgs"></div>
+      <div class="row" style="margin-top:6px"><input id="cin" placeholder="Escribe un mensaje" autocomplete="off"><button id="cbtn">Enviar</button></div>
+    </div>
+  </aside>
+  <footer>
+    <button id="bMic">🎤 Micrófono</button>
+    <button id="bCam">📷 Cámara</button>
+    <button id="bShare">🖥️ Compartir pantalla</button>
+    <button id="bDrink">🍹 Cambiar brebaje</button>
+    <button class="main" id="bCheers">🥂 ¡Brindis!</button>
+    <button id="bLink" class="hide">🔗 Copiar enlace</button>
+    <button id="bLeave" class="off">Salir</button>
+  </footer>
+</section>
+
+<dialog id="dlg"><h3>Cambia tu brebaje</h3><div class="picker" id="dpick"></div><button id="dclose">Cerrar</button></dialog>
+<div id="toast" class="hide"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const D=[['cafe','☕','Café','hot','#8b5a2b','none'],['te','🍵','Té','hot','#9bc96b','none'],['mate','🧉','Mate','hot','#6fa34a','none'],['cerveza','🍺','Cerveza','fizz','#f2b630','none'],['ron','🥃','Ron','','#7a3e18','sepia(.7) brightness(.62) saturate(1.6)'],['whisky','🥃','Whisky','','#e8a33d','none'],['vodka','🍸','Vodka','','#cfe8ff','none'],['vino','🍷','Vino','','#a3202f','none'],['mojito','🍹','Mojito','fizz','#4cc46a','hue-rotate(100deg) saturate(1.3)'],['margarita','🍹','Margarita','','#3fd0c9','hue-rotate(165deg) saturate(1.2)'],['pina','🍹','Piña colada','','#ffe27a','hue-rotate(35deg) saturate(.75) brightness(1.25)'],['tequila','🥃','Tequila','','#f4efc2','grayscale(.75) brightness(1.4)'],['licuado','🥤','Licuado','','#ff8fb8','hue-rotate(300deg) saturate(1.3) brightness(1.15)'],['jugo','🧃','Jugo de fruta','','#ff9f43','none'],['boba','🧋','Boba tea','','#d9b38c','none'],['agua','💧','Agua','','#6ec6ff','none'],['coca','🥤','Coca Cola','fizz','#5a2a1a','sepia(.9) brightness(.5) saturate(1.4)']];
+const dk=k=>D.find(d=>d[0]===k)||D[0];
+const TEXTOS=["La primera mentira que le dijiste a tu mamá","La primera borrachera que viviste","Una anécdota vergonzosa en el trabajo","Una historia romántica con alguna persona especial","¿Te bañas todos los días? Sé sincero(a)","¿Quién conduce mejor, tú o tu pareja?","¿Cuál es la fecha de cumpleaños de tu mejor amigo o amiga? (sin trampa)","RETO: brinda en otro idioma","RETO: imita a alguien de la llamada durante 20 segundos","RETO: canta el coro de tu canción favorita"];
+const TEMAS=["¿Qué invento no podrías dejar de usar?","La inteligencia artificial: ¿ayuda o amenaza?","El mejor viaje que han hecho o sueñan hacer","Música que suena hoy en tu país","¿Qué comida de tu tierra deberían probar los demás?","Costumbres de tu país que sorprenden a extranjeros"];
+let me={name:'',drink:'cafe'},peer,conns={},calls={},peers={},isHost=false,hostId,stream,camTrack,state={mode:'chat',topic:null,tr:null,game:'ttt',sopa:null,hang:{theme:null,word:'',g:[]},ttt:{b:Array(9).fill(''),t:'X'}},tiles={},code;
+let spinTimer;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const e=$('toast');e.textContent=t;e.classList.remove('hide');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.add('hide'),2600)}
+function pickGrid(el,cur,fn){el.innerHTML=D.map(d=>`<button class="opt ${d[0]===cur?'sel':''}" data-k="${d[0]}" style="box-shadow:inset 0 -5px 0 ${d[4]}"><span class="e" style="filter:${d[5]}">${d[1]}</span>${d[2]}</button>`).join('');el.onclick=e=>{const b=e.target.closest('.opt');if(!b)return;[...el.children].forEach(x=>x.classList.toggle('sel',x===b));fn(b.dataset.k)}}
+pickGrid($('lpick'),me.drink,k=>me.drink=k);
+code=location.hash.slice(1);
+if(code){$('rbox').classList.add('hide');$('bJoin').classList.remove('hide');$('bCreate').classList.add('hide');$('lsub').textContent='Te invitaron a una cita. Pon tu nombre, elige tu brebaje y entra.'}
+async function media(){
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480},audio:true})}
+  catch(e){try{stream=await navigator.mediaDevices.getUserMedia({audio:true});toast('Sin cámara: entras solo con audio')}catch(e2){alert('Necesito permiso de cámara y micrófono. Revisa el candado de la barra de direcciones y vuelve a intentar.');return false}}
+  camTrack=stream.getVideoTracks()[0];return true}
+function enter(){me.name=($('nick').value.trim()||'Invitado').slice(0,16);$('lobby').classList.add('hide');$('room').classList.remove('hide');refresh();panel();modesBar()}
+$('bCreate').onclick=async()=>{if(!await media())return;code=slug($('rname').value)||Math.random().toString(36).slice(2,8);isHost=true;enter();
+  peer=new Peer('brebaje-'+code);setup();
+  peer.on('open',id=>{hostId=id;location.hash=code;$('bLink').classList.remove('hide');copyLink();});
+  peer.on('error',e=>{if(e.type==='unavailable-id'){alert('Ese nombre de cita está en uso ahora mismo (¿la tienes abierta en otra pestaña?). Prueba con otro nombre.');location.hash='';location.reload()}else toast('Error de conexión: '+e.type)})};
+$('bJoin').onclick=async()=>{if(!await media())return;hostId='brebaje-'+code;enter();
+  peer=new Peer();setup();
+  peer.on('open',tryHost);
+  peer.on('error',e=>{if(e.type==='peer-unavailable'){toast('⏳ Esperando a la anfitriona… entrarás solo cuando abra la cita');setTimeout(tryHost,4000)}else toast('Error: '+e.type)})};
+function tryHost(){if(!peer||peer.destroyed||conns[hostId])return;addConn(peer.connect(hostId))}
+function copyLink(){const u=location.origin+location.pathname+'#'+code;navigator.clipboard&&navigator.clipboard.writeText(u).then(()=>toast('Enlace copiado: envíalo por WhatsApp'),()=>prompt('Copia este enlace:',u))}
+$('bLink').onclick=copyLink;
+function setup(){peer.on('connection',addConn);peer.on('call',c=>{c.answer(stream);hook(c)})}
+function callTo(id){if(calls[id])return;hook(peer.call(id,stream))}
+function hook(c){calls[c.peer]=c;c.on('stream',s=>{peers[c.peer]=peers[c.peer]||{name:'...',drink:'cafe'};peers[c.peer].stream=s;refresh()});c.on('close',()=>drop(c.peer))}
+function addConn(c){
+  c.on('open',()=>{
+    if(isHost&&!conns[c.peer]&&Object.keys(conns).length>=3){c.send({t:'full'});setTimeout(()=>c.close(),300);return}
+    conns[c.peer]=c;peers[c.peer]=peers[c.peer]||{name:'...',drink:'cafe'};
+    c.send({t:'hi',name:me.name,drink:me.drink});if(!isHost&&c.peer===hostId)callTo(hostId);
+    if(isHost){c.send({t:'peers',l:Object.keys(conns).filter(x=>x!==c.peer)});c.send({t:'state',s:state})}
+    refresh()});
+  c.on('data',d=>onData(c.peer,d));c.on('close',()=>drop(c.peer))}
+function drop(id){const n=peers[id]&&peers[id].name;delete conns[id];delete calls[id];delete peers[id];refresh();if(n)toast(n+' salió de la cita')}
+function send(m){Object.values(conns).forEach(c=>c.open&&c.send(m))}
+function onData(id,d){
+  const p=peers[id]=peers[id]||{name:'...',drink:'cafe'};
+  if(d.t==='full'){alert('La cita ya tiene 4 personas.');location.hash='';location.reload()}
+  else if(d.t==='hi'){p.name=d.name;p.drink=d.drink;refresh()}
+  else if(d.t==='drink'){p.drink=d.k;refresh()}
+  else if(d.t==='peers'){d.l.forEach(x=>{if(!conns[x])addConn(peer.connect(x));callTo(x)})}
+  else if(d.t==='state'){state=d.s;panel();modesBar()}
+  else if(d.t==='chat')msg(p.name,d.m);
+  else if(d.t==='cheers')cheers(p.name);
+  else if(d.t==='ttt')tttMove(d.i,true);else if(d.t==='hg')hangGuess(d.l,true);else if(d.t==='sw')sopaFound(d.w,d.by,true)}
+/* tiles */
+function mkTile(id,self){const t=document.createElement('div');t.className='tile'+(self?' me':'');t.innerHTML='<video autoplay playsinline></video><span class="nm"></span><div class="drink"><span class="e"></span><i></i><i></i><i></i><small></small></div>';$('grid').appendChild(t);return t}
+function upd(t,name,k,st,self){const v=t.querySelector('video');if(st&&v.srcObject!==st){v.srcObject=st;v.muted=!!self}t.querySelector('.nm').textContent=name+(self?' (tú)':'');const d=dk(k),el=t.querySelector('.drink');el.className='drink '+d[3];el.style.setProperty('--c',d[4]);el.querySelector('.e').style.filter=d[5];el.querySelector('.e').textContent=d[1];el.querySelector('small').textContent=d[2]}
+function refresh(){
+  const ids=['me',...Object.keys(peers)];
+  Object.keys(tiles).forEach(i=>{if(!ids.includes(i)){tiles[i].remove();delete tiles[i]}});
+  if(!tiles.me)tiles.me=mkTile('me',true);upd(tiles.me,me.name,me.drink,stream,true);
+  Object.entries(peers).forEach(([id,p])=>{if(!tiles[id])tiles[id]=mkTile(id);upd(tiles[id],p.name,p.drink,p.stream)});
+  if(!$('grid')._w&&false){}
+  $('panel')&&state.mode==='games'&&panel()}
+function cheers(n){Object.values(tiles).forEach(t=>{const d=t.querySelector('.drink');d.classList.remove('cheers');void d.offsetWidth;d.classList.add('cheers')});toast('🥂 ¡Brindis'+(n?' de '+n:'')+'!')}
+$('bCheers').onclick=()=>{cheers('');send({t:'cheers'})};
+$('bDrink').onclick=()=>{pickGrid($('dpick'),me.drink,k=>{me.drink=k;send({t:'drink',k});refresh();$('dlg').close()});$('dlg').showModal()};
+$('dclose').onclick=()=>$('dlg').close();
+/* controles */
+$('bMic').onclick=e=>{const a=stream.getAudioTracks()[0];if(!a)return;a.enabled=!a.enabled;e.target.classList.toggle('off',!a.enabled);e.target.textContent=a.enabled?'🎤 Micrófono':'🔇 Silenciado'};
+$('bCam').onclick=e=>{if(!camTrack)return;camTrack.enabled=!camTrack.enabled;e.target.classList.toggle('off',!camTrack.enabled);e.target.textContent=camTrack.enabled?'📷 Cámara':'🚫 Cámara apagada'};
+let sharing=null;
+$('bShare').onclick=async e=>{
+  const swap=t=>Object.values(calls).forEach(c=>{const s=c.peerConnection.getSenders().find(x=>x.track&&x.track.kind==='video');s&&t&&s.replaceTrack(t)});
+  if(sharing){sharing.getTracks().forEach(t=>t.stop());return endShare()}
+  try{sharing=await navigator.mediaDevices.getDisplayMedia({video:true})}catch(x){return}
+  const st=sharing.getVideoTracks()[0];swap(st);tiles.me.querySelector('video').srcObject=sharing;tiles.me.classList.add('sc');e.target.textContent='⏹️ Dejar de compartir';st.onended=endShare;
+  function endShare(){sharing=null;swap(camTrack);tiles.me.querySelector('video').srcObject=stream;tiles.me.classList.remove('sc');$('bShare').textContent='🖥️ Compartir pantalla'}};
+$('bLeave').onclick=()=>{peer&&peer.destroy();stream&&stream.getTracks().forEach(t=>t.stop());location.hash='';location.reload()};
+/* chat */
+function msg(n,m){$('msgs').insertAdjacentHTML('beforeend',`<div><b>${esc(n)}:</b> ${esc(m)}</div>`);$('msgs').scrollTop=1e9}
+function sendChat(){const v=$('cin').value.trim();if(!v)return;msg(me.name,v);send({t:'chat',m:v});$('cin').value=''}
+$('cbtn').onclick=sendChat;$('cin').onkeydown=e=>{if(e.key==='Enter')sendChat()};
+/* modos */
+let en=false;
+const L={es:{chat:'💬 Conversar',games:'🎲 Juegos',trend:'🌍 Tema del mundo',truth:'🎡 Verdad o Reto'},en:{chat:'💬 Chat',games:'🎲 Games',trend:'🌍 World topic',truth:'🎡 Truth or Dare'}};
+function modesBar(){const m=$('modes');m.innerHTML=Object.entries(L[en?'en':'es']).map(([k,v])=>`<button data-m="${k}" class="${state.mode===k?'act':''}" ${!isHost?'disabled style="cursor:default"':''}>${v}</button>`).join('')+(isHost?'':'<small style="align-self:center;color:#9fb8d8">Solo la anfitriona cambia el modo</small>');}
+$('modes').onclick=e=>{const b=e.target.closest('button');if(!b||!isHost)return;setState({mode:b.dataset.m})};
+$('bLang').onclick=()=>{en=!en;$('bLang').textContent=en?'ES':'EN';modesBar();panel()};
+function setState(p){Object.assign(state,p);send({t:'state',s:state});modesBar();panel()}
+function panel(){
+  const P=$('panel'),m=state.mode;
+  if(m==='chat'){P.innerHTML=`<h3>${en?'Just chat':'Solo conversar'}</h3><p>${en?'Faces and drinks, nothing else. Cheers! 🥂':'Rostros y brebajes, nada más. ¡Salud! 🥂'}</p>`}
+  else if(m==='trend'){P.innerHTML=`<h3>${en?'World topic':'Tema del mundo'}</h3><div class="big">${esc(state.topic?state.topic.t:(en?'Waiting for a topic…':'Esperando un tema…'))}</div><small style="color:#9fb8d8">${state.topic&&state.topic.s?esc(state.topic.s):''}</small>${isHost?`<div style="margin-top:10px"><button class="main" id="bTopic">${en?'New topic':'Nuevo tema'}</button></div>`:''}`;
+    if(isHost)$('bTopic').onclick=newTopic}
+  else if(m==='truth'){const t=state.tr;P.innerHTML=`<h3>${en?'Truth or Dare':'Verdad o Reto de Brebaje'}</h3>`+
+    (isHost?`<div class="who"><small>${en?'Who plays?':'¿Quiénes juegan?'}</small>${[me.name,...Object.values(peers).map(p=>p.name)].map((n,i)=>`<label><input type="checkbox" checked value="${esc(n)}" style="width:auto"> ${esc(n)}</label>`).join('')}<button class="main" id="bSpin" style="margin-top:8px">🎡 ${en?'Spin':'Girar ruleta'}</button></div>`:'')+
+    `<div class="big" id="trRes">${t?(Date.now()-t.at<1600?'🎡 …':esc(t.who)+': '+esc(t.p)):(en?'The wheel is waiting':'La ruleta espera')}</div>`;
+    if(t&&Date.now()-t.at<1600){clearTimeout(spinTimer);spinTimer=setTimeout(panel,1650-(Date.now()-t.at))}
+    if(isHost)$('bSpin').onclick=spin}
+  else if(m==='games'){const bar=isHost?`<div class="row" style="margin-bottom:8px"><button data-g="ttt" class="${state.game!=='hang'?'main':''}">Gato</button><button data-g="hang" class="${state.game==='hang'?'main':''}">Ahorcado</button><button data-g="sopa" class="${state.game==='sopa'?'main':''}">Sopa de letras</button></div>`:'';if(state.game==='hang'){hangPanel(P,bar);return}if(state.game==='sopa'){sopaPanel(P,bar);return}const g=state.ttt,pl=['me',...Object.keys(peers)].sort(),win=tttWin(g.b);
+    const names=pl.slice(0,2).map(i=>i==='me'?me.name:peers[i].name);
+    P.innerHTML=bar+`<h3>${en?'Tic-tac-toe':'Gato (tres en raya)'}</h3><small>X: ${esc(names[0]||'—')} · O: ${esc(names[1]||'—')} ${en?'(others watch)':'(los demás miran)'}</small><div class="ttt">${g.b.map((v,i)=>`<button data-i="${i}">${v}</button>`).join('')}</div><div>${win?(win==='=' ? (en?'Draw!':'¡Empate!'):(en?'Winner: ':'Ganó ')+win):(en?'Turn: ':'Turno: ')+g.t}</div>${isHost?`<button id="bNew" style="margin-top:8px">${en?'New game':'Nueva partida'}</button>`:''}<p style="font-size:.8rem;color:#9fb8d8">${en?'Coming soon: Bingo, Trivia.':'Próximamente: Lotería y Preguntas y Respuestas.'}</p>`;
+    P.querySelector('.ttt').onclick=e=>{const b=e.target.closest('button');if(b)tttMove(+b.dataset.i,false)};
+    if(isHost)$('bNew').onclick=()=>setState({ttt:{b:Array(9).fill(''),t:'X'}});bindBar(P)}}
+const WL=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function tttWin(b){for(const[a,c,d]of WL)if(b[a]&&b[a]===b[c]&&b[a]===b[d])return b[a];return b.every(x=>x)?'=':null}
+function tttMove(i,remote){const g=state.ttt;if(g.b[i]||tttWin(g.b))return;
+  if(!remote){const pl=['me',...Object.keys(peers)].sort();const idx=pl.indexOf('me');if(idx>1||(idx===0?'X':'O')!==g.t){toast(en?'Not your turn':'No es tu turno');return}}
+  g.b[i]=g.t;g.t=g.t==='X'?'O':'X';if(!remote)send({t:'ttt',i});panel()}
+/* ruleta y temas */
+function spin(){const sel=[...document.querySelectorAll('.who input:checked')].map(x=>x.value);if(!sel.length)return toast('Elige al menos una persona');
+  setState({tr:{who:sel[Math.random()*sel.length|0],p:TEXTOS[Math.random()*TEXTOS.length|0],at:Date.now()}})}
+async function newTopic(){let t=null;
+  try{const d=new Date(Date.now()-864e5),u=`https://wikimedia.org/api/rest/v1/metrics/pageviews/top/es.wikipedia/all-access/${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
+    const r=await(await fetch(u)).json();const a=r.items[0].articles.filter(x=>!/^(Wikipedia|Especial|Portada|Ayuda|Categoría|Archivo)/.test(x.article)&&x.article!=='Wikipedia:Portada').slice(0,25);
+    const x=a[Math.random()*a.length|0];t={t:`Todo el mundo busca: ${x.article.replace(/_/g,' ')}. ¿Qué opinan?`,s:'Tendencia de ayer en Wikipedia'}}catch(e){}
+  if(!t)t={t:TEMAS[Math.random()*TEMAS.length|0],s:'Tema de la casa'};
+  setState({topic:t})}
+/* ahorcado */
+const slug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const HT={Animales:['ELEFANTE','JIRAFA','MARIPOSA','DELFIN','MURCIELAGO','TORTUGA'],Frutas:['MANGO','SANDIA','FRESA','ARANDANO','MARACUYA','GUAYABA'],Países:['HONDURAS','ARGENTINA','PORTUGAL','JAPON','COLOMBIA','MEXICO'],Comidas:['BALEADA','PIZZA','EMPANADA','TAMALES','ENSALADA','HAMBURGUESA'],Profesiones:['DOCTORA','ARQUITECTO','MAESTRO','INGENIERA','PERIODISTA','BOMBERO'],Deportes:['FUTBOL','NATACION','BEISBOL','CICLISMO','VOLEIBOL','ATLETISMO'],'Cosas de casa':['REFRIGERADOR','SOFA','ESPEJO','ALMOHADA','VENTILADOR','CORTINA'],Bebidas:['LIMONADA','CAPUCHINO','CHOCOLATE','MOJITO','SANGRIA','TEQUILA'],Ciudades:['PARIS','LONDRES','MADRID','TEGUCIGALPA','BOGOTA','ROMA'],Instrumentos:['GUITARRA','PIANO','TAMBOR','VIOLIN','TROMPETA','MARIMBA']};
+function bindBar(P){P.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>setState({game:b.dataset.g}))}
+function hangSVG(m){const p=['<circle cx="130" cy="58" r="14"/>','<path d="M130 72v45"/>','<path d="M130 82l-24 24"/>','<path d="M130 82l24 24"/>','<path d="M130 117l-20 32"/>','<path d="M130 117l20 32"/>'];return `<svg viewBox="0 0 200 170" width="170" fill="none" stroke="#e3f3ff" stroke-width="5" stroke-linecap="round"><path d="M20 160h100M50 160V15h80v28" stroke="#8fd3ff"/>${p.slice(0,m).join('')}</svg>`}
+function hangState(){const h=state.hang,miss=h.word?h.g.filter(l=>!h.word.includes(l)).length:0;return{h,miss,won:!!h.word&&[...h.word].every(c=>h.g.includes(c)),lost:miss>=6}}
+function hangPanel(P,bar){const{h,miss,won,lost}=hangState();
+  const themes=isHost?`<small>${en?'New word, pick a theme:':'Nueva palabra, elige tema:'}</small><div class="row" style="margin:6px 0">${Object.keys(HT).map(t=>`<button data-t="${t}" class="${h.theme===t?'main':''}" style="padding:.3em .8em;font-size:.85rem">${t}</button>`).join('')}</div>`:'';
+  const body=h.word?`<small>${en?'Theme':'Tema'}: ${esc(h.theme)}</small>${hangSVG(Math.min(miss,6))}<div class="big" style="letter-spacing:.2em;word-break:break-all">${[...h.word].map(c=>h.g.includes(c)||lost?c:'_').join(' ')}</div><div>${won?(en?'🎉 You did it!':'🎉 ¡Lo lograron!'):lost?(en?'💀 Out of tries':'💀 Se acabaron los intentos'):(en?'Misses: ':'Fallos: ')+miss+'/6'}</div><div class="kb">${[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(l=>`<button data-l="${l}" ${h.g.includes(l)||won||lost?'disabled':''}>${l}</button>`).join('')}</div>`:`<p>${isHost?(en?'Pick a theme to start':'Elige un tema para empezar'):(en?'Waiting for the host to pick a theme…':'Esperando que la anfitriona elija un tema…')}</p>`;
+  P.innerHTML=bar+`<h3>${en?'Hangman':'Ahorcado'}</h3>`+body+themes;
+  bindBar(P);P.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>startHang(b.dataset.t));P.querySelectorAll('[data-l]').forEach(b=>b.onclick=()=>hangGuess(b.dataset.l,false))}
+function startHang(t){const w=HT[t];setState({hang:{theme:t,word:w[Math.random()*w.length|0],g:[]}})}
+function hangGuess(l,remote){const{h,won,lost}=hangState();if(!h.word||h.g.includes(l)||won||lost)return;h.g.push(l);if(!remote)send({t:'hg',l});panel()}
+/* sopa de letras */
+const SW={Animales:'ELEFANTE JIRAFA MARIPOSA DELFIN TORTUGA CABALLO GALLINA CONEJO LEOPARDO CANGURO PINGUINO TIBURON COCODRILO ZORRO LOBO GATO',Frutas:'MANGO SANDIA FRESA ARANDANO MARACUYA GUAYABA PAPAYA MELON NARANJA LIMON BANANO CEREZA DURAZNO MANZANA COCO KIWI',Países:'HONDURAS ARGENTINA PORTUGAL JAPON COLOMBIA MEXICO ITALIA FRANCIA ALEMANIA CANADA BRASIL PERU CHILE ECUADOR PANAMA GUATEMALA',Comidas:'BALEADA PIZZA EMPANADA TAMALES ENSALADA SOPA TACOS ARROZ FRIJOLES PASTEL CEVICHE POLLO CHURROS PASTA TORTILLA SANDWICH',Profesiones:'DOCTORA ARQUITECTO MAESTRO INGENIERA PERIODISTA BOMBERO ABOGADO COCINERO PILOTO ENFERMERA DENTISTA POLICIA CARPINTERO MECANICO ARTISTA CONTADOR',Deportes:'FUTBOL NATACION BEISBOL CICLISMO VOLEIBOL ATLETISMO TENIS BOXEO GOLF RUGBY BALONCESTO KARATE JUDO SURF ESGRIMA PATINAJE','Cosas de casa':'SOFA ESPEJO ALMOHADA VENTILADOR CORTINA MESA SILLA CAMA LAMPARA ALFOMBRA ESTUFA COCINA VENTANA PUERTA ARMARIO ESCRITORIO',Bebidas:'LIMONADA CAPUCHINO CHOCOLATE MOJITO SANGRIA TEQUILA CERVEZA CAFE VINO WHISKY VODKA LICUADO BATIDO JUGO AGUA REFRESCO',Ciudades:'PARIS LONDRES MADRID BOGOTA ROMA TOKIO LIMA QUITO BERLIN MIAMI LISBOA SANTIAGO CARACAS VIENA SEUL HABANA',Instrumentos:'GUITARRA PIANO TAMBOR VIOLIN TROMPETA MARIMBA FLAUTA ARPA BAJO BATERIA SAXOFON ACORDEON CLARINETE UKELELE TROMBON CELLO'};
+let ssel=null;
+function mkSopa(t){const N=15,n=12+(Math.random()*5|0),ws=SW[t].split(' ').sort(()=>Math.random()-.5).slice(0,n).sort((a,b)=>b.length-a.length),g=Array(N*N).fill(''),D8=[[0,1],[1,0],[1,1],[-1,1],[0,-1],[-1,0],[-1,-1],[1,-1]],pl=[];
+  ws.forEach(w=>{for(let k=0;k<400;k++){const[dr,dc]=D8[Math.random()*8|0],r=Math.random()*N|0,c=Math.random()*N|0,er=r+dr*(w.length-1),ec=c+dc*(w.length-1);if(er<0||er>=N||ec<0||ec>=N)continue;let ok=1;for(let i=0;i<w.length;i++){const x=g[(r+dr*i)*N+c+dc*i];if(x&&x!==w[i]){ok=0;break}}if(!ok)continue;for(let i=0;i<w.length;i++)g[(r+dr*i)*N+c+dc*i]=w[i];pl.push({w,r,c,dr,dc});return}});
+  const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';return{theme:t,grid:g.map(x=>x||A[Math.random()*26|0]).join(''),words:pl,found:{}}}
+function sopaPanel(P,bar){const S=state.sopa,cells=new Set();
+  if(S)S.words.forEach(x=>{if(S.found[x.w])for(let i=0;i<x.w.length;i++)cells.add((x.r+x.dr*i)*15+x.c+x.dc*i)});
+  const nf=S?Object.keys(S.found).length:0;
+  const themes=isHost?`<small>${en?'New puzzle, pick a theme:':'Nueva sopa, elige tema:'}</small><div class="row" style="margin:6px 0">${Object.keys(SW).map(t=>`<button data-s="${t}" class="${S&&S.theme===t?'main':''}" style="padding:.3em .8em;font-size:.85rem">${t}</button>`).join('')}</div>`:'';
+  const body=S?`<small>${en?'Theme':'Tema'}: ${esc(S.theme)} · ${en?'tap the first and last letter':'toca la primera y la última letra'}</small><div class="sg">${[...S.grid].map((l,i)=>`<button data-i="${i}" class="${cells.has(i)?'f':''}${ssel===i?' s':''}">${l}</button>`).join('')}</div><div class="wl">${S.words.map(x=>`<span class="${S.found[x.w]?'d':''}" title="${esc(S.found[x.w]||'')}">${x.w}</span>`).join('')}</div><div>${nf===S.words.length?(en?'🎉 All found!':'🎉 ¡Encontraron todas!'):(en?'Found ':'Encontradas ')+nf+'/'+S.words.length}</div>`:`<p>${isHost?(en?'Pick a theme to start':'Elige un tema para empezar'):(en?'Waiting for the host to pick a theme…':'Esperando que la anfitriona elija un tema…')}</p>`;
+  P.innerHTML=bar+`<h3>${en?'Word search':'Sopa de letras'}</h3>`+body+themes;
+  bindBar(P);P.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ssel=null;setState({sopa:mkSopa(b.dataset.s)})});
+  const g=P.querySelector('.sg');if(g)g.onclick=e=>{const b=e.target.closest('button');if(b)sopaClick(+b.dataset.i)}}
+function sopaClick(i){const S=state.sopa,N=15;if(ssel===null){ssel=i;return panel()}
+  const r1=ssel/N|0,c1=ssel%N,dr=(i/N|0)-r1,dc=i%N-c1;ssel=null;
+  if(dr&&dc&&Math.abs(dr)!==Math.abs(dc))return panel();
+  const len=Math.max(Math.abs(dr),Math.abs(dc))+1,sr=Math.sign(dr),sc=Math.sign(dc);let t='';for(let k=0;k<len;k++)t+=S.grid[(r1+sr*k)*N+c1+sc*k];
+  const w=S.words.find(x=>!S.found[x.w]&&(x.w===t||[...x.w].reverse().join('')===t));
+  if(w)sopaFound(w.w,me.name,false);else{toast(en?'Not a word, try again':'Esa no es, intenta otra vez');panel()}}
+function sopaFound(w,by,remote){const S=state.sopa;if(!S||S.found[w])return;S.found[w]=by;if(!remote)send({t:'sw',w,by});toast('✅ '+by+': '+w);panel()}
+</script>
+</body>
+</html>
